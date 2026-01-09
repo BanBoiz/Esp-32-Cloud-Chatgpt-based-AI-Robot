@@ -1,0 +1,100 @@
+#define BLYNK_PRINT Serial
+
+#include <WiFi.h>
+#include <BlynkSimpleEsp32.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <ESP32Servo.h>
+
+/* ===== BLYNK ===== */
+#define BLYNK_AUTH_TOKEN "PASTE_YOUR_BLYNK_TOKEN_HERE"  // Mobile app থেকে নেওয়া
+
+/* ===== WIFI ===== */
+char ssid[] = "Gooogle";
+char pass[] = "nauseous";
+
+/* ===== OLED ===== */
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+/* ===== PINS ===== */
+#define OLED_SDA 21
+#define OLED_SCL 22
+#define SERVO1_PIN 23
+#define SERVO2_PIN 19
+#define BUTTON_PIN 32
+#define AUDIO_PIN 25   // DAC → LM386
+
+Servo servo1;
+Servo servo2;
+
+/* ===== SETUP ===== */
+void setup() {
+  Serial.begin(115200);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  // OLED init
+  Wire.begin(OLED_SDA, OLED_SCL);
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  display.println("Robot Starting...");
+  display.display();
+
+  // Servo init
+  servo1.attach(SERVO1_PIN);
+  servo2.attach(SERVO2_PIN);
+  servo1.write(90);
+  servo2.write(90);
+
+  // Blynk + WiFi
+  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("Blynk Connected!");
+  display.display();
+}
+
+/* ===== LOOP ===== */
+void loop() {
+  Blynk.run();
+
+  // Physical button as backup
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    robotAction();
+    delay(1000);
+  }
+}
+
+/* ===== BLYNK VIRTUAL PIN ===== */
+// V0 → Button in Blynk app
+BLYNK_WRITE(V0) {
+  int value = param.asInt();
+  if (value == 1) {
+    robotAction();
+  }
+}
+
+/* ===== ROBOT ACTION ===== */
+void robotAction() {
+  // OLED message
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("Hello Human!");
+  display.println("I am Alive");
+  display.display();
+
+  // Servo gesture
+  servo1.write(30); servo2.write(150); delay(300);
+  servo1.write(150); servo2.write(30); delay(300);
+  servo1.write(90); servo2.write(90);
+
+  // Speaker beep test
+  dacWrite(AUDIO_PIN, 200);
+  delay(200);
+  dacWrite(AUDIO_PIN, 0);
+}
