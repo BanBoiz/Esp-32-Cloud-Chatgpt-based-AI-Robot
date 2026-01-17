@@ -1,0 +1,89 @@
+/*********** BLYNK SETUP ***********/
+#define BLYNK_PRINT Serial
+#include <WiFi.h>
+#include <BlynkSimpleEsp32.h>
+
+char auth[] = "PASTE_YOUR_BLYNK_AUTH_TOKEN";
+char ssid[] = "YOUR_WIFI_NAME";
+char pass[] = "YOUR_WIFI_PASSWORD";
+
+/*********** SERVO ***********/
+#include <ESP32Servo.h>
+Servo servo1;
+Servo servo2;
+
+#define SERVO1_PIN 18
+#define SERVO2_PIN 19
+
+/*********** OLED ***********/
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+/*********** BUTTON ***********/
+#define BUTTON_PIN 4
+
+/*********** BLYNK BUTTONS ***********/
+BLYNK_WRITE(V0) {   // Servo 1
+  int v = param.asInt();
+  servo1.write(v ? 150 : 90);
+}
+
+BLYNK_WRITE(V1) {   // Servo 2
+  int v = param.asInt();
+  servo2.write(v ? 30 : 90);
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  servo1.attach(SERVO1_PIN);
+  servo2.attach(SERVO2_PIN);
+  servo1.write(90);
+  servo2.write(90);
+
+  Wire.begin(21, 22);
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  display.println("ESP32 AI ROBOT");
+  display.println("Connecting...");
+  display.display();
+
+  Blynk.begin(auth, ssid, pass);
+
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("WiFi Connected");
+  display.println("Blynk Ready");
+  display.display();
+}
+
+void loop() {
+  Blynk.run();
+
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("Button Pressed");
+    display.println("Hello Human!");
+    display.display();
+
+    servo1.write(30);
+    servo2.write(150);
+    delay(500);
+    servo1.write(150);
+    servo2.write(30);
+    delay(500);
+    servo1.write(90);
+    servo2.write(90);
+  }
+}
